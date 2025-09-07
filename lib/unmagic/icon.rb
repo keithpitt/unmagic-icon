@@ -81,7 +81,7 @@ module Unmagic
         # Check for missing icon name
         if icon_name.blank?
           raise MissingLibraryError,
-                "Missing library in icon reference: '#{reference}'. Use format: library/icon or engine:library/icon"
+            "Missing library in icon reference: '#{reference}'. Use format: library/icon or engine:library/icon"
         end
 
         # Check for engine prefix and validate it exists
@@ -92,7 +92,7 @@ module Unmagic
           unless available_engines.include?(engine_prefix)
             available_list = available_engines.any? ? available_engines.join(", ") : "none available"
             raise EngineNotFoundError,
-                  "Engine '#{engine_prefix}' not found for reference '#{reference}'. Available engines: #{available_list}"
+              "Engine '#{engine_prefix}' not found for reference '#{reference}'. Available engines: #{available_list}"
           end
         end
 
@@ -123,35 +123,35 @@ module Unmagic
         # Build helpful error message
         unless library_path.include?(":")
           raise IconNotFoundError,
-                "Icon '#{icon_name}' not found in library '#{library_path}' (attempted: #{attempted_paths.join(', ')})"
+            "Icon '#{icon_name}' not found in library '#{library_path}' (attempted: #{attempted_paths.join(', ')})"
         end
 
         engine_prefix, library_name = library_path.split(":", 2)
         raise IconNotFoundError,
-              "Icon '#{icon_name}' not found in engine library '#{engine_prefix}:#{library_name}' (attempted: #{attempted_paths.join(', ')})"
+          "Icon '#{icon_name}' not found in engine library '#{engine_prefix}:#{library_name}' (attempted: #{attempted_paths.join(', ')})"
       end
 
       def search_paths
         @search_paths ||= begin
-          paths = []
+                            paths = []
 
-          # Main app icons
-          app_path = Rails.root.join("app/assets/icons")
-          paths << [ nil, app_path ] if app_path.exist?
+                            # Main app icons
+                            app_path = Rails.root.join("app/assets/icons")
+                            paths << [ nil, app_path ] if app_path.exist?
 
-          # Engine icons with prefixes
-          Rails.application.railties.select do |r|
-            r.is_a?(Rails::Engine) && r.class != Rails::Application
-          end.each do |engine|
-            engine_path = engine.root.join("app/assets/icons")
-            next unless engine_path.exist?
+                            # Engine icons with prefixes
+                            Rails.application.railties.select do |r|
+                              r.is_a?(Rails::Engine) && r.class != Rails::Application
+                            end.each do |engine|
+                              engine_path = engine.root.join("app/assets/icons")
+                              next unless engine_path.exist?
 
-            prefix = engine.class.name.underscore.gsub(%r{/engine$}, "").tr("/", "_")
-            paths << [ prefix, engine_path ]
-          end
+                              prefix = engine.class.name.underscore.gsub(%r{/engine$}, "").tr("/", "_")
+                              paths << [ prefix, engine_path ]
+                            end
 
-          paths
-        end
+                            paths
+                          end
       end
 
       # Force library discovery at boot time (called from railtie)
@@ -173,19 +173,32 @@ module Unmagic
       # Get all icon libraries for browsing
       def libraries
         @libraries ||= begin
-          libs = {}
+                         libs = {}
 
-          Library.discover_all.each do |name, icons|
-            libs[name] = OpenStruct.new(name: name, icons: icons)
-          end
+                         Library.discover_all.each do |name, icons|
+                           libs[name] = OpenStruct.new(name: name, icons: icons)
+                         end
 
-          libs
-        end
+                         libs
+                       end
       end
 
-      # Documentation path for the docs engine
-      def docs_path
-        File.expand_path("../../docs", __dir__)
+      class << self
+        # Initialize configuration with a block
+        def init
+          yield(configuration) if block_given?
+          @initialized = true
+        end
+
+        # Check if initialization has been called
+        def initialized?
+          @initialized == true
+        end
+
+        # Get the current configuration
+        def configuration
+          @configuration ||= Configuration.new
+        end
       end
     end
   end

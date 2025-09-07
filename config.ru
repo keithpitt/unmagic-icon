@@ -19,19 +19,6 @@ unless Dir.exist?(ICONS_PATH)
   FileUtils.mkdir_p(ICONS_PATH)
 end
 
-# Move any existing icons from the old location
-old_path = File.join(__dir__, 'tmp/app/assets/icons')
-if Dir.exist?(old_path)
-  require 'fileutils'
-  Dir.glob("#{old_path}/*").each do |library_dir|
-    next unless File.directory?(library_dir)
-
-    library_name = File.basename(library_dir)
-    FileUtils.mv(library_dir, File.join(ICONS_PATH, library_name))
-  end
-  FileUtils.rm_rf(File.join(__dir__, 'tmp/app')) if Dir.exist?(File.join(__dir__, 'tmp/app'))
-end
-
 # Create a minimal Rails application for the icon browser
 module IconGallerySandbox
   class Application < Rails::Application
