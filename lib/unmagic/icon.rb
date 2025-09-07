@@ -24,7 +24,7 @@ module Unmagic
     class IconNotFoundError < Error; end
     class EngineNotFoundError < Error; end
     class InvalidReferenceError < Error; end
-    
+
     attr_reader :path, :name, :library_key
 
     def initialize(path, name, library_key)
@@ -52,7 +52,7 @@ module Unmagic
       # Add attributes to the opening svg tag
       svg.sub!(/<svg\s*/i, "<svg ")
       svg.sub!(/<svg(\s+[^>]*)?>/) do |_match|
-        attributes = $1 || ""
+        attributes = ::Regexp.last_match(1) || ""
 
         # Remove any existing class attribute
         attributes.gsub!(/\sclass=["'][^"']*["']/, "")
@@ -63,7 +63,7 @@ module Unmagic
         new_attributes << %(role="img")
         new_attributes << %(aria-label="#{@name.humanize}")
 
-        "<svg#{attributes} #{new_attributes.join(" ")}>"
+        "<svg#{attributes} #{new_attributes.join(' ')}>"
       end
 
       svg.html_safe
@@ -72,33 +72,33 @@ module Unmagic
     class << self
       def find(reference)
         # Validate reference format
-        if reference.blank?
-          raise InvalidReferenceError.new("Icon reference cannot be blank")
-        end
-        
+        raise InvalidReferenceError, "Icon reference cannot be blank" if reference.blank?
+
         # Parse reference: "library/icon" or "engine:library/icon"
         *library_parts, icon_name = reference.split("/")
         library_path = library_parts.join("/")
-        
+
         # Check for missing icon name
         if icon_name.blank?
-          raise MissingLibraryError.new("Missing library in icon reference: '#{reference}'. Use format: library/icon or engine:library/icon")
+          raise MissingLibraryError,
+                "Missing library in icon reference: '#{reference}'. Use format: library/icon or engine:library/icon"
         end
-        
+
         # Check for engine prefix and validate it exists
         if library_path.include?(":")
           engine_prefix = library_path.split(":").first
           available_engines = search_paths.select { |prefix, _| prefix }.map(&:first)
-          
+
           unless available_engines.include?(engine_prefix)
             available_list = available_engines.any? ? available_engines.join(", ") : "none available"
-            raise EngineNotFoundError.new("Engine '#{engine_prefix}' not found for reference '#{reference}'. Available engines: #{available_list}")
+            raise EngineNotFoundError,
+                  "Engine '#{engine_prefix}' not found for reference '#{reference}'. Available engines: #{available_list}"
           end
         end
-        
+
         # Track attempted paths for better error messages
         attempted_paths = []
-        
+
         # Check each search path
         search_paths.each do |prefix, base_path|
           if library_path.start_with?("#{prefix}:")
@@ -115,41 +115,45 @@ module Unmagic
           else
             next
           end
-          
+
           attempted_paths << file.to_s
           return Icon.new(file, icon_name, library_key) if file.exist?
         end
-        
+
         # Build helpful error message
-        if library_path.include?(":")
-          engine_prefix, library_name = library_path.split(":", 2)
-          raise IconNotFoundError.new("Icon '#{icon_name}' not found in engine library '#{engine_prefix}:#{library_name}' (attempted: #{attempted_paths.join(", ")})")
-        else
-          raise IconNotFoundError.new("Icon '#{icon_name}' not found in library '#{library_path}' (attempted: #{attempted_paths.join(", ")})")
+        unless library_path.include?(":")
+          raise IconNotFoundError,
+                "Icon '#{icon_name}' not found in library '#{library_path}' (attempted: #{attempted_paths.join(', ')})"
         end
+
+        engine_prefix, library_name = library_path.split(":", 2)
+        raise IconNotFoundError,
+              "Icon '#{icon_name}' not found in engine library '#{engine_prefix}:#{library_name}' (attempted: #{attempted_paths.join(', ')})"
       end
-      
+
       def search_paths
         @search_paths ||= begin
           paths = []
-          
+
           # Main app icons
           app_path = Rails.root.join("app/assets/icons")
-          paths << [nil, app_path] if app_path.exist?
-          
+          paths << [ nil, app_path ] if app_path.exist?
+
           # Engine icons with prefixes
-          Rails.application.railties.select { |r| r.is_a?(Rails::Engine) && r.class != Rails::Application }.each do |engine|
+          Rails.application.railties.select do |r|
+            r.is_a?(Rails::Engine) && r.class != Rails::Application
+          end.each do |engine|
             engine_path = engine.root.join("app/assets/icons")
             next unless engine_path.exist?
-            
-            prefix = engine.class.name.underscore.gsub(/\/engine$/, '').tr('/', '_')
-            paths << [prefix, engine_path]
+
+            prefix = engine.class.name.underscore.gsub(%r{/engine$}, "").tr("/", "_")
+            paths << [ prefix, engine_path ]
           end
-          
+
           paths
         end
       end
-      
+
       # Force library discovery at boot time (called from railtie)
       def preload!
         libraries = Library.discover_all
@@ -157,7 +161,7 @@ module Unmagic
         Rails.logger.info "[unmagic-icon] Preloaded #{libraries.count} icon libraries with #{total_icons} total icons"
         libraries
       end
-      
+
       # Force library discovery at boot time (called from railtie)
       def preload_libraries!
         @libraries = Unmagic::Icon::Library.discover_all
@@ -165,16 +169,16 @@ module Unmagic
         Rails.logger.info "[unmagic-icon] Preloaded #{@libraries.count} icon libraries with #{total_icons} total icons"
         @libraries
       end
-      
+
       # Get all icon libraries for browsing
       def libraries
         @libraries ||= begin
           libs = {}
-          
+
           Library.discover_all.each do |name, icons|
             libs[name] = OpenStruct.new(name: name, icons: icons)
           end
-          
+
           libs
         end
       end

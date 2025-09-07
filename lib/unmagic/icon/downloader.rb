@@ -90,9 +90,7 @@ module Unmagic
           library = library.to_sym
           config = LIBRARIES[library]
 
-          if !config
-            raise DownloadError.new("Unknown library: #{library}")
-          end
+          raise DownloadError, "Unknown library: #{library}" unless config
 
           target_dir = Rails.root.join("tmp/icons/#{library}")
 
@@ -131,9 +129,9 @@ module Unmagic
             FileUtils.mkdir_p(target_dir)
 
             # Move SVG files to target
+            all_files = []
             if config[:target_subdirs]
               # Handle multiple subdirectories (like heroicons)
-              all_files = []
               config[:target_subdirs].each do |source_pattern, target_subdir|
                 full_pattern = File.join(tmpdir, source_pattern, "*.svg")
                 files = Dir.glob(full_pattern)
@@ -167,7 +165,6 @@ module Unmagic
               end
             else
               # Simple extraction - collect all files first
-              all_files = []
               config[:extract_paths].each do |pattern|
                 files = Dir.glob(File.join(tmpdir, pattern))
                 all_files.concat(files.select { |f| File.file?(f) })
@@ -214,12 +211,10 @@ module Unmagic
             dir_path = path_pattern.split("*.svg").first
 
             # Get directory listing from GitHub API
-            uri = URI("#{base_url}/#{dir_path}?ref=#{config[:branch] || "main"}")
+            uri = URI("#{base_url}/#{dir_path}?ref=#{config[:branch] || 'main'}")
             response = fetch_with_redirect(uri, headers)
 
-            if response.code != "200"
-              raise DownloadError.new("Failed to list #{dir_path}: HTTP #{response.code}")
-            end
+            raise DownloadError, "Failed to list #{dir_path}: HTTP #{response.code}" if response.code != "200"
 
             files = JSON.parse(response.body)
             svg_files = files.select { |f| f["name"].end_with?(".svg") }
@@ -255,18 +250,14 @@ module Unmagic
           uri = URI(url)
           response = fetch_with_redirect(uri)
 
-          if response.code != "200"
-            raise DownloadError.new("Failed to download #{url}: HTTP #{response.code}")
-          end
+          raise DownloadError, "Failed to download #{url}: HTTP #{response.code}" if response.code != "200"
 
           File.binwrite(destination, response.body)
         end
 
         # Fetch with redirect support
         def fetch_with_redirect(uri, headers = {}, limit = 10)
-          if limit == 0
-            raise DownloadError.new("Too many redirects")
-          end
+          raise DownloadError, "Too many redirects" if limit.zero?
 
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = (uri.scheme == "https")
@@ -293,16 +284,12 @@ module Unmagic
           case type
           when :zip
             _, stderr, status = Open3.capture3("unzip", "-q", "-o", archive_path, "-d", destination)
-            if !status.success?
-              raise ExtractionError.new("Failed to extract zip: #{stderr}")
-            end
+            raise ExtractionError, "Failed to extract zip: #{stderr}" unless status.success?
           when :tgz, :tar
             _, stderr, status = Open3.capture3("tar", "-xzf", archive_path, "-C", destination)
-            if !status.success?
-              raise ExtractionError.new("Failed to extract tar: #{stderr}")
-            end
+            raise ExtractionError, "Failed to extract tar: #{stderr}" unless status.success?
           else
-            raise ExtractionError.new("Unknown archive type: #{type}")
+            raise ExtractionError, "Unknown archive type: #{type}"
           end
         end
 

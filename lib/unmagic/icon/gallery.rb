@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'rack'
-require 'erb'
-require 'cgi'
+require "rack"
+require "erb"
+require "cgi"
 
 module Unmagic
   class Icon
@@ -18,29 +18,29 @@ module Unmagic
         @libraries = Unmagic::Icon.libraries
 
         # Parse library from path (e.g., /pixelarticons or /fa/sharp/solid)
-        path = request.path_info.sub(%r{^/}, '').sub(%r{/$}, '')
+        path = request.path_info.sub(%r{^/}, "").sub(%r{/$}, "")
 
         if path.empty?
           # Redirect to first library
           first_library = @libraries.keys.first
-          query_string = request.query_string.empty? ? '' : "?#{request.query_string}"
-          return [302, { 'location' => "/#{first_library}#{query_string}" }, []]
+          query_string = request.query_string.empty? ? "" : "?#{request.query_string}"
+          return [ 302, { "location" => "/#{first_library}#{query_string}" }, [] ]
         end
 
         @selected_library = path
-        @search_query = request.params['q'] || ''
+        @search_query = request.params["q"] || ""
 
         # Check if library exists
         unless @libraries.key?(@selected_library)
-          return [404, { 'content-type' => 'text/plain' }, ["Library not found: #{@selected_library}"]]
+          return [ 404, { "content-type" => "text/plain" }, [ "Library not found: #{@selected_library}" ] ]
         end
 
         # Render the view
-        template_path = File.expand_path('../../views/gallery.html.erb', __dir__)
+        template_path = File.expand_path("../../views/gallery.html.erb", __dir__)
         template = ERB.new(File.read(template_path))
         html = template.result(binding)
 
-        [200, { 'content-type' => 'text/html; charset=utf-8' }, [html]]
+        [ 200, { "content-type" => "text/html; charset=utf-8" }, [ html ] ]
       end
 
       private

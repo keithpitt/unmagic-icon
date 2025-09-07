@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-source 'https://rubygems.org'
+source "https://rubygems.org"
 
 # gem "unmagic-color", git: "git@github.com:unreasonable-magic/unmagic-color"
 # gem "unmagic-enum", git: "git@github.com:unreasonable-magic/unmagic-enum"
@@ -9,7 +9,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :development, :test do
-  gem 'puma'
-  gem 'rspec'
-  gem 'rubocop-rails-omakase', require: false
+  gem "puma"
+  gem "rspec"
+  gem "rubocop-rails-omakase", require: false
 end

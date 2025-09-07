@@ -55,7 +55,7 @@ module IconGallerySandbox
     # Override the icon search paths to use our tmp directory
     def self.override_icon_paths!
       Unmagic::Icon.define_singleton_method(:search_paths) do
-        [[nil, Pathname.new(ICONS_PATH)]]
+        [ [ nil, Pathname.new(ICONS_PATH) ] ]
       end
 
       # Clear library cache and force rediscovery

@@ -32,31 +32,31 @@ module Unmagic
       class << self
         # Discover all icon libraries with proper prefixes (optimized)
         def discover_all
-          @libraries ||= begin
+          @discover_all ||= begin
             libraries = {}
-            
+
             Icon.search_paths.each do |prefix, base_path|
               # More efficient: walk directories instead of globbing all files
               Dir.glob(base_path.join("**/")).each do |dir_path|
                 next unless File.directory?(dir_path)
-                
+
                 # Check if this directory has any SVG files
                 svg_files = Dir.glob(File.join(dir_path, "*.svg"))
                 next if svg_files.empty?
-                
+
                 # Build library name from path relative to icons root
                 library_path = Pathname.new(dir_path)
                 relative = library_path.relative_path_from(base_path).to_s.chomp("/")
-                
+
                 # Skip empty library names (root directory)
                 next if relative.empty? || relative == "."
-                
+
                 # Add prefix for engine libraries
                 library_name = prefix ? "#{prefix}:#{relative}" : relative
                 libraries[library_name] = svg_files.map { |f| File.basename(f, ".svg") }
               end
             end
-            
+
             libraries
           end
         end

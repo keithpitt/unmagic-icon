@@ -8,7 +8,7 @@ module Unmagic
       config.after_initialize do
         Unmagic::Icon.preload!
       end
-      
+
       rake_tasks do
         namespace :unmagic do
           namespace :icons do
@@ -28,7 +28,7 @@ module Unmagic
             end
 
             desc "Download popular icon libraries"
-            task :download, [ :library, :force ] => :environment do |task, args|
+            task :download, %i[library force] => :environment do |_task, args|
               require_relative "downloader"
 
               library = args[:library]&.strip
@@ -67,7 +67,7 @@ module Unmagic
                   Rails.root.join("lib"),
                   Rails.root.join("spec"),
                   Rails.root.join("test")
-                ].select { |d| d.exist? }
+                ].select(&:exist?)
 
                 source_listener = Listen.to(
                   *source_directories,
