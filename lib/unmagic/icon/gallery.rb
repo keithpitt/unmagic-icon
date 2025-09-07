@@ -23,8 +23,12 @@ module Unmagic
         if path.empty?
           # Redirect to first library
           first_library = @libraries.keys.first
-          query_string = request.query_string.empty? ? "" : "?#{request.query_string}"
-          return [ 302, { "location" => "/#{first_library}#{query_string}" }, [] ]
+          if first_library.nil?
+            return [ 404, { "content-type" => "text/plain" }, [ "No libraries found" ] ]
+          else
+            query_string = request.query_string.empty? ? "" : "?#{request.query_string}"
+            return [ 302, { "location" => "/#{first_library}#{query_string}" }, [] ]
+          end
         end
 
         @selected_library = path
